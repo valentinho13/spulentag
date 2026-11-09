@@ -19,7 +19,8 @@ h1{font-size:22px;margin:4px 0 12px}
 label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 select,input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.farben{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:6px}
+.farben{display:grid;grid-template-columns:repeat(8,1fr);gap:7px;margin-top:6px}
+.farben .gruppe{grid-column:1/-1;font-size:12px;color:var(--mut);margin-top:6px}
 .farben button{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);cursor:pointer}
 .farben button.an{outline:3px solid var(--acc);outline-offset:2px}
 .vorschau{display:flex;align-items:center;gap:10px;margin-top:10px}
@@ -104,19 +105,26 @@ const MATERIAL = {
 };
 const VARIANTEN = ["Basic","Matte","Silk","SnapSpeed","HF","Rapid","Plus","Pro","Clear","CF"];
 const FARBEN = [
-  ["Weiß","FFFFFF"],["Schwarz","111111"],["Grau","8A8D8F"],["Silber","C0C0C0"],["Rot","D32F2F"],["Orange","F57C00"],
-  ["Gelb","FBC02D"],["Grün","388E3C"],["Hellgrün","8BC34A"],["Blau","1976D2"],["Hellblau","4FC3F7"],["Lila","7B1FA2"],
-  ["Pink","EC407A"],["Braun","6D4C41"],["Beige","D7C4A3"],["Gold","C9A227"],["Transparent","F0F0F0"],["Eigene…",""]
+  ["Weiß & Grau", [["Weiß","FFFFFF"],["Elfenbein","F3EBD8"],["Hellgrau","C8C8C8"],["Grau","8A8D8F"],["Dunkelgrau","4A4A4A"],["Schwarz","111111"]]],
+  ["Rot & Rosa", [["Rot","D32F2F"],["Feuerrot","FF3D00"],["Dunkelrot","8E1B1B"],["Bordeaux","6A1B2A"],["Pink","EC407A"],["Magenta","D81B60"],["Rosa","F8BBD0"],["Lachs","FA8072"]]],
+  ["Orange & Gelb", [["Orange","F57C00"],["Hellorange","FFA726"],["Gelb","FBC02D"],["Zitronengelb","FFEB3B"],["Pastellgelb","FFF59D"],["Ocker","C8961E"]]],
+  ["Grün", [["Grün","388E3C"],["Hellgrün","8BC34A"],["Neongrün","76FF03"],["Dunkelgrün","1B5E20"],["Oliv","6B7A2F"],["Mint","98E0C2"],["Türkis","00BFA5"],["Petrol","00695C"]]],
+  ["Blau & Lila", [["Blau","1976D2"],["Hellblau","4FC3F7"],["Himmelblau","87CEEB"],["Dunkelblau","0D2C6B"],["Marine","1A237E"],["Cyan","00BCD4"],["Lila","7B1FA2"],["Violett","9575CD"],["Lavendel","C5B3E6"]]],
+  ["Braun & Haut", [["Braun","6D4C41"],["Dunkelbraun","3E2723"],["Holz","A1784F"],["Beige","D7C4A3"],["Hautton","F1C7A8"],["Terrakotta","C1683C"]]],
+  ["Metallic & Effekt", [["Gold","C9A227"],["Silber","C0C0C0"],["Bronze","B0723A"],["Kupfer","B87333"],["Transparent","F0F0F0"],["Glow (nachleuchtend)","CFF5C4"]]]
 ];
+const FARBLISTE = FARBEN.flatMap(g => g[1]);
 const $ = id => document.getElementById(id);
 const opt = (sel, arr) => sel.innerHTML = arr.map(v => `<option>${v}</option>`).join("");
 
 opt($("hersteller"), HERSTELLER);
 opt($("material"), Object.keys(MATERIAL));
 opt($("subtyp"), VARIANTEN);
-$("farbname").innerHTML = FARBEN.map(([n,h]) => `<option value="${h}">${n}</option>`).join("");
-$("farben").innerHTML = FARBEN.filter(f => f[1]).map(([n,h]) =>
-  `<button type="button" title="${n}" data-hex="${h}" style="background:#${h}"></button>`).join("");
+$("farbname").innerHTML = FARBEN.map(([g, l]) => `<optgroup label="${g}">` +
+  l.map(([n,h]) => `<option value="${h}">${n}</option>`).join("") + "</optgroup>").join("") +
+  `<option value="">Eigene Farbe…</option>`;
+$("farben").innerHTML = FARBEN.map(([g, l]) => `<div class="gruppe">${g}</div>` +
+  l.map(([n,h]) => `<button type="button" title="${n}" aria-label="${n}" data-hex="${h}" style="background:#${h}"></button>`).join("")).join("");
 
 // letzte Auswahl merken (nur Komfort)
 const MERK = ["hersteller","herstellerFrei","material","subtyp","farbname","gewicht","spule","herkunft","herkunftFrei"];
