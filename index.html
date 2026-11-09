@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spulen-Tag</title>
+<style>
+:root{--bg:#f6f6f4;--card:#fff;--fg:#1d1d1b;--mut:#6b6b66;--line:#dcdcd6;--acc:#0b7a5c;--err:#b3261e;--ok:#0b7a5c}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--fg:#ececea;--mut:#a3a39d;--line:#3a3a36;--acc:#3fbf93;--err:#f2827a;--ok:#3fbf93}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
+select,input{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.farben{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:6px}
+.farben button{aspect-ratio:1;border-radius:50%;border:2px solid var(--line);cursor:pointer}
+.farben button.an{outline:3px solid var(--acc);outline-offset:2px}
+.vorschau{display:flex;align-items:center;gap:10px;margin-top:10px}
+.punkt{width:34px;height:34px;border-radius:50%;border:1px solid var(--line)}
+.knopf{width:100%;font:600 17px system-ui;padding:14px;border:0;border-radius:10px;background:var(--acc);color:#fff;margin-top:8px}
+.knopf.zweit{background:transparent;color:var(--fg);border:1px solid var(--line)}
+#status{min-height:22px;margin-top:10px;font-weight:600}
+.ok{color:var(--ok)}.err{color:var(--err)}
+pre{white-space:pre-wrap;word-break:break-all;font-size:12px;background:var(--bg);padding:8px;border-radius:8px;margin:8px 0 0}
+small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Spulen-Tag schreiben</h1>
+
+<div class="card">
+  <div class="row">
+    <div><label for="hersteller">Hersteller</label>
+      <select id="hersteller"></select></div>
+    <div><label for="material">Material</label>
+      <select id="material"></select></div>
+  </div>
+  <div id="herstellerFreiBox" hidden><label for="herstellerFrei">Hersteller (frei)</label><input id="herstellerFrei"></div>
+  <label for="subtyp">Variante</label>
+  <select id="subtyp"></select>
+
+  <label>Farbe</label>
+  <div class="farben" id="farben"></div>
+  <div class="vorschau"><div class="punkt" id="punkt"></div>
+    <select id="farbname" style="flex:1"></select>
+    <input type="color" id="farbwahl" style="width:52px;padding:2px;height:44px"></div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div><label for="gewicht">Rollengröße</label>
+      <select id="gewicht">
+        <option value="250">250 g</option><option value="500">500 g</option><option value="750">750 g</option>
+        <option value="1000" selected>1 kg</option><option value="2000">2 kg</option><option value="3000">3 kg</option></select></div>
+    <div><label for="spule">Spule</label>
+      <select id="spule"><option>Plastik</option><option>Karton</option></select></div>
+  </div>
+  <label for="herkunft">Herkunft</label>
+  <select id="herkunft">
+    <option>Amazon</option><option>3DJake</option><option>Snapmaker-Shop</option><option>Bambu Lab Store</option>
+    <option>Herstellershop</option><option>Kleinanzeigen</option><option>Geschenk / beim Drucker dabei</option><option>Andere</option></select>
+  <div id="herkunftFreiBox" hidden><label for="herkunftFrei">Herkunft (frei)</label><input id="herkunftFrei"></div>
+</div>
+
+<div class="card">
+  <div class="row">
+    <div><label for="tmin">Düse min °C</label><input id="tmin" type="number" inputmode="numeric"></div>
+    <div><label for="tmax">Düse max °C</label><input id="tmax" type="number" inputmode="numeric"></div>
+    <div><label for="bmin">Bett min °C</label><input id="bmin" type="number" inputmode="numeric"></div>
+    <div><label for="bmax">Bett max °C</label><input id="bmax" type="number" inputmode="numeric"></div>
+  </div>
+  <small>Wird beim Materialwechsel vorbelegt, ändern geht jederzeit.</small>
+</div>
+
+<button class="knopf" id="schreiben">Auf Tag schreiben</button>
+<button class="knopf zweit" id="lesen">Tag lesen (prüfen)</button>
+<button class="knopf zweit" id="kopieren">Text für Claude kopieren</button>
+<div id="status"></div>
+
+<div class="card" style="margin-top:12px">
+  <small>Inhalt, der auf den Tag kommt (OpenSpool, NTAG215):</small>
+  <pre id="json"></pre>
+</div>
+</main>
+
+<script>
+const HERSTELLER = ["Sunlu","eSUN","Snapmaker","Polymaker","Bambu Lab","Elegoo","Jayo","Geeetech","Anycubic","Prusament","Extrudr","Das Filament","Generic","Andere…"];
+const MATERIAL = {
+  PLA:  {t:[190,230], b:[50,60]},
+  PETG: {t:[230,260], b:[70,80]},
+  PCTG: {t:[240,270], b:[70,85]},
+  ABS:  {t:[240,270], b:[90,100]},
+  ASA:  {t:[240,270], b:[90,100]},
+  TPU:  {t:[210,240], b:[40,60]},
+  PVB:  {t:[190,220], b:[50,60]}
+};
+const VARIANTEN = ["Basic","Matte","Silk","SnapSpeed","HF","Rapid","Plus","Pro","Clear","CF"];
+const FARBEN = [
+  ["Weiß","FFFFFF"],["Schwarz","111111"],["Grau","8A8D8F"],["Silber","C0C0C0"],["Rot","D32F2F"],["Orange","F57C00"],
+  ["Gelb","FBC02D"],["Grün","388E3C"],["Hellgrün","8BC34A"],["Blau","1976D2"],["Hellblau","4FC3F7"],["Lila","7B1FA2"],
+  ["Pink","EC407A"],["Braun","6D4C41"],["Beige","D7C4A3"],["Gold","C9A227"],["Transparent","F0F0F0"],["Eigene…",""]
+];
+const $ = id => document.getElementById(id);
+const opt = (sel, arr) => sel.innerHTML = arr.map(v => `<option>${v}</option>`).join("");
+
+opt($("hersteller"), HERSTELLER);
+opt($("material"), Object.keys(MATERIAL));
+opt($("subtyp"), VARIANTEN);
+$("farbname").innerHTML = FARBEN.map(([n,h]) => `<option value="${h}">${n}</option>`).join("");
+$("farben").innerHTML = FARBEN.filter(f => f[1]).map(([n,h]) =>
+  `<button type="button" title="${n}" data-hex="${h}" style="background:#${h}"></button>`).join("");
+
+// letzte Auswahl merken (nur Komfort)
+const MERK = ["hersteller","herstellerFrei","material","subtyp","farbname","gewicht","spule","herkunft","herkunftFrei"];
+try { const s = JSON.parse(localStorage.getItem("spulentag") || "{}");
+  MERK.forEach(k => { if (s[k] != null) $(k).value = s[k]; }); if (s.hex) farbeSetzen(s.hex, false); } catch {}
+
+let hex = $("farbname").value || "FFFFFF";
+function farbeSetzen(h, ausListe = true) {
+  hex = h.replace("#","").toUpperCase();
+  $("punkt").style.background = "#" + hex;
+  $("farbwahl").value = "#" + hex;
+  document.querySelectorAll(".farben button").forEach(b => b.classList.toggle("an", b.dataset.hex === hex));
+  if (ausListe) { const o = [...$("farbname").options].find(o => o.value === hex); $("farbname").value = o ? hex : ""; }
+  aktualisieren();
+}
+function temperaturen() {
+  const m = MATERIAL[$("material").value];
+  $("tmin").value = m.t[0]; $("tmax").value = m.t[1]; $("bmin").value = m.b[0]; $("bmax").value = m.b[1];
+}
+function hersteller() { return $("hersteller").value === "Andere…" ? ($("herstellerFrei").value.trim() || "Generic") : $("hersteller").value; }
+function herkunft() { return $("herkunft").value === "Andere" ? ($("herkunftFrei").value.trim() || "Andere") : $("herkunft").value; }
+function farbname() { const o = $("farbname").selectedOptions[0]; return o && o.value ? o.textContent : "#" + hex; }
+
+function nutzlast() {
+  return {
+    protocol: "openspool", version: "1.0",
+    brand: hersteller(), type: $("material").value, subtype: $("subtyp").value,
+    color_hex: "#" + hex,
+    min_temp: +$("tmin").value, max_temp: +$("tmax").value,
+    bed_min_temp: +$("bmin").value, bed_max_temp: +$("bmax").value,
+    weight: +$("gewicht").value, diameter: 1.75,
+    x_quelle: herkunft(), x_spule: $("spule").value
+  };
+}
+function aktualisieren() {
+  $("herstellerFreiBox").hidden = $("hersteller").value !== "Andere…";
+  $("herkunftFreiBox").hidden = $("herkunft").value !== "Andere";
+  $("json").textContent = JSON.stringify(nutzlast(), null, 1);
+  const s = {}; MERK.forEach(k => s[k] = $(k).value); s.hex = hex;
+  try { localStorage.setItem("spulentag", JSON.stringify(s)); } catch {}
+}
+function status(t, art) { $("status").textContent = t; $("status").className = art || ""; }
+
+$("farben").addEventListener("click", e => { if (e.target.dataset.hex) farbeSetzen(e.target.dataset.hex); });
+$("farbname").addEventListener("change", e => { if (e.target.value) farbeSetzen(e.target.value); else $("farbwahl").click(); });
+$("farbwahl").addEventListener("input", e => farbeSetzen(e.target.value));
+$("material").addEventListener("change", () => { temperaturen(); aktualisieren(); });
+document.querySelectorAll("select,input").forEach(el => el.addEventListener("input", aktualisieren));
+
+if (!$("tmin").value) temperaturen();
+farbeSetzen($("farbname").value || hex);
+
+const NFC = "NDEFReader" in window;
+if (!NFC) status("Web NFC fehlt: bitte in Chrome auf Android öffnen (HTTPS), NFC einschalten.", "err");
+
+$("schreiben").onclick = async () => {
+  if (!NFC) return;
+  const daten = JSON.stringify(nutzlast());
+  if (daten.length > 480) return status("Zu lang für NTAG215 – Freitext kürzen.", "err");
+  try {
+    status("Tag jetzt an die Handyrückseite halten …");
+    const r = new NDEFReader();
+    await r.write({ records: [{ recordType: "mime", mediaType: "application/json", data: new TextEncoder().encode(daten) }] });
+    status("Geschrieben ✓  Zum Prüfen „Tag lesen“ tippen.", "ok");
+    navigator.vibrate?.(150);
+  } catch (e) { status("Fehler beim Schreiben: " + e.message, "err"); }
+};
+
+$("lesen").onclick = async () => {
+  if (!NFC) return;
+  try {
+    const r = new NDEFReader(); const ab = new AbortController();
+    await r.scan({ signal: ab.signal });
+    status("Tag an die Handyrückseite halten …");
+    r.onreading = ev => {
+      ab.abort();
+      const uid = ev.serialNumber || "?";
+      const rec = ev.message.records.find(x => x.mediaType === "application/json");
+      if (!rec) return status(`Tag ${uid}: kein OpenSpool-Inhalt.`, "err");
+      const j = JSON.parse(new TextDecoder().decode(rec.data));
+      $("json").textContent = "UID " + uid + "\n" + JSON.stringify(j, null, 1);
+      status(`Gelesen ✓  ${j.brand} ${j.type} ${j.subtype || ""} ${j.color_hex} · UID ${uid}`, "ok");
+    };
+    r.onreadingerror = () => status("Tag nicht lesbar – nochmal ranhalten.", "err");
+  } catch (e) { status("Fehler beim Lesen: " + e.message, "err"); }
+};
+
+$("kopieren").onclick = async () => {
+  const t = `Spule: ${hersteller()} ${$("material").value} ${$("subtyp").value}, ${farbname()} (#${hex}), ` +
+            `${$("gewicht").value} g, ${$("spule").value}, Herkunft ${herkunft()}`;
+  try { await navigator.clipboard.writeText(t); status("Kopiert ✓  In den Chat einfügen und Kopf dazuschreiben.", "ok"); }
+  catch { status(t); }
+};
+</script>
+</body>
+</html>
