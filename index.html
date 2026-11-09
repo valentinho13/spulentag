@@ -242,10 +242,16 @@ $("kopieren").onclick = async () => {
 // ---- Kamera-Pipette ----
 let strom = null, kamHex = null, kamTimer = null;
 const leinwand = document.createElement("canvas");
+function lab(h) {
+  const f = c => { c /= 255; return c > 0.04045 ? ((c + 0.055) / 1.055) ** 2.4 : c / 12.92; };
+  const [r,g,b] = [0,2,4].map(i => f(parseInt(h.substr(i,2),16)));
+  const X = (r*0.4124 + g*0.3576 + b*0.1805) / 0.95047, Y = r*0.2126 + g*0.7152 + b*0.0722, Z = (r*0.0193 + g*0.1192 + b*0.9505) / 1.08883;
+  const k = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16/116;
+  return [116*k(Y) - 16, 500*(k(X) - k(Y)), 200*(k(Y) - k(Z))];
+}
 function naechste(h) {
-  const z = x => [0,2,4].map(i => parseInt(x.substr(i,2),16));
-  const [r,g,b] = z(h); let best = null, d = 1e9;
-  for (const [n,x] of FARBLISTE) { const [R,G,B] = z(x); const e = (r-R)**2*0.3 + (g-G)**2*0.59 + (b-B)**2*0.11; if (e < d) { d = e; best = n; } }
+  const a = lab(h); let best = null, d = 1e9;
+  for (const [n,x] of FARBLISTE) { const b = lab(x); const e = (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2; if (e < d) { d = e; best = n; } }
   return best;
 }
 function messen() {
