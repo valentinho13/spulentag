@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spulen-Tag</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b7a5c">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{--bg:#f6f6f4;--card:#fff;--fg:#1d1d1b;--mut:#6b6b66;--line:#dcdcd6;--acc:#0b7a5c;--err:#b3261e;--ok:#0b7a5c}
 @media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--fg:#ececea;--mut:#a3a39d;--line:#3a3a36;--acc:#3fbf93;--err:#f2827a;--ok:#3fbf93}}
@@ -206,6 +210,7 @@ $("kopieren").onclick = async () => {
   try { await navigator.clipboard.writeText(t); status("Kopiert ✓  In den Chat einfügen und Kopf dazuschreiben.", "ok"); }
   catch { status(t); }
 };
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
 </html>
