@@ -251,7 +251,7 @@ function lab(h) {
 }
 function naechste(h) {
   const a = lab(h); let best = null, d = 1e9;
-  for (const [n,x] of FARBLISTE) { const b = lab(x); const e = (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2; if (e < d) { d = e; best = n; } }
+  for (const [n,x] of FARBLISTE) { if (n === "Transparent" || n.startsWith("Glow")) continue; const b = lab(x); const e = (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2; if (e < d) { d = e; best = n; } }
   return best;
 }
 function messen() {
